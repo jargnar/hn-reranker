@@ -56,7 +56,9 @@ export function preprocessText(text: string): string[] {
     'now', 'of', 'for', 'with', 'by', 'about', 'against', 'between', 'into',
     'through', 'during', 'before', 'after', 'above', 'below', 'up', 'down',
     'that', 'this', 'these', 'those', 'am', 'im', 'your', 'his', 'her', 'their',
-    'my', 'mine', 'our', 'ours', 'its', 'their', 'theirs', 'you', 'me', 'him', 'her'
+    'my', 'mine', 'our', 'ours', 'its', 'their', 'theirs', 'you', 'me', 'him', 'her',
+    'working', 'work', 'works', 'worked', 'using', 'use', 'uses', 'used',
+    'interest', 'interested', 'interesting', 'interests',
   ]);
   
   const filteredTokens = terms

@@ -79,7 +79,7 @@ export default function Home() {
   return (
     <div className="min-h-screen p-4 max-w-6xl mx-auto">
       <header className="mb-8 text-center">
-        <h1 className="text-3xl font-bold mb-2">Hacker News Personalized Ranking</h1>
+        <h1 className="text-3xl font-bold mb-2">🏆 Suhas' Hacker News Reranker App</h1>
         <p className="text-gray-600 dark:text-gray-400">
           Enter your bio to get Hacker News stories ranked by relevance to your interests
         </p>
