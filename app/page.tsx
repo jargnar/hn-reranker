@@ -1,101 +1,196 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useMemo } from 'react';
+import axios from 'axios';
+import { Story, RankedStoriesResponse } from './types';
+import KeywordDisplay from './components/KeywordDisplay';
+import RelevanceScore from './components/RelevanceScore';
+import MatchingKeywords from './components/MatchingKeywords';
+import LoadingSpinner from './components/LoadingSpinner';
+import StoryFilters from './components/StoryFilters';
+import PerformanceMetrics from './components/PerformanceMetrics';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [bio, setBio] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [stories, setStories] = useState<Story[]>([]);
+  const [userKeywords, setUserKeywords] = useState<string[]>([]);
+  const [processingTime, setProcessingTime] = useState<number | null>(null);
+  const [cacheHit, setCacheHit] = useState(false);
+  const [error, setError] = useState('');
+  const [minRelevanceScore, setMinRelevanceScore] = useState(0);
+  const [sortBy, setSortBy] = useState<'relevance' | 'score' | 'date'>('relevance');
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const sampleBio = "I am a theoretical biologist, interested in disease ecology. My tools are R, clojure, compartmentalism disease modeling, and statistical GAM models, using a variety of data layers (geophysical, reconstructions, climate, biodiversity, land use). Besides that I am interested in tech applied to the a subset of the current problems of the world (agriculture / biodiversity / conservation / forecasting), development of third world countries and AI, large language models.";
+
+  const useSampleBio = () => {
+    setBio(sampleBio);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!bio.trim()) {
+      setError('Please enter your bio to rank stories');
+      return;
+    }
+    
+    setIsLoading(true);
+    setError('');
+    setProcessingTime(null);
+    
+    try {
+      const startTime = performance.now();
+      const response = await axios.post<RankedStoriesResponse>('/api/rank-stories', { bio });
+      const clientTime = performance.now() - startTime;
+      
+      setStories(response.data.stories);
+      setUserKeywords(response.data.userKeywords || []);
+      setProcessingTime(response.data.processingTime || Math.round(clientTime));
+      setCacheHit(response.data.cacheHit || false);
+    } catch (err) {
+      console.error('Error fetching ranked stories:', err);
+      setError('Failed to fetch and rank stories. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Filter and sort stories based on user preferences
+  const filteredAndSortedStories = useMemo(() => {
+    // First, filter by minimum relevance score
+    const filtered = stories.filter(story => {
+      const scorePercentage = Math.round((story.relevanceScore || 0) * 100);
+      return scorePercentage >= minRelevanceScore;
+    });
+    
+    // Then, sort based on the selected sort method
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'relevance') {
+        return (b.relevanceScore || 0) - (a.relevanceScore || 0);
+      } else if (sortBy === 'score') {
+        return b.score - a.score;
+      } else { // date
+        return b.time - a.time;
+      }
+    });
+  }, [stories, minRelevanceScore, sortBy]);
+
+  return (
+    <div className="min-h-screen p-4 max-w-6xl mx-auto">
+      <header className="mb-8 text-center">
+        <h1 className="text-3xl font-bold mb-2">Hacker News Personalized Ranking</h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Enter your bio to get Hacker News stories ranked by relevance to your interests
+        </p>
+      </header>
+
+      <form onSubmit={handleSubmit} className="mb-8">
+        <div className="mb-4">
+          <label htmlFor="bio" className="block mb-2 font-medium">
+            Your Bio / Interests
+          </label>
+          <textarea
+            id="bio"
+            rows={5}
+            className="w-full p-3 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+            placeholder="Describe your interests, skills, and background..."
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+          />
+          <button
+            type="button"
+            onClick={useSampleBio}
+            className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            Use sample bio
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        
+        <KeywordDisplay bio={bio} />
+        
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 disabled:opacity-50"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+          {isLoading ? 'Ranking Stories...' : 'Rank Stories'}
+        </button>
+        
+        {error && (
+          <p className="mt-2 text-red-500">{error}</p>
+        )}
+      </form>
+
+      {isLoading && (
+        <LoadingSpinner message="Fetching and ranking stories based on your interests..." />
+      )}
+
+      {!isLoading && filteredAndSortedStories.length > 0 && (
+        <div>
+          <h2 className="text-xl font-bold mb-4">Top Stories Ranked For You</h2>
+          
+          {processingTime && (
+            <PerformanceMetrics 
+              processingTime={processingTime}
+              storiesCount={stories.length}
+              cacheHit={cacheHit}
+            />
+          )}
+          
+          <StoryFilters 
+            onFilterChange={setMinRelevanceScore}
+            onSortChange={setSortBy}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          
+          <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+            Showing {filteredAndSortedStories.length} stories with relevance score ≥ {minRelevanceScore}%
+          </p>
+          
+          <div className="space-y-4">
+            {filteredAndSortedStories.map((story) => (
+              <div key={story.id} className="p-4 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
+                <h3 className="font-medium">
+                  {story.url ? (
+                    <a 
+                      href={story.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      {story.title}
+                    </a>
+                  ) : (
+                    story.title
+                  )}
+                </h3>
+                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  <span>By {story.by} • </span>
+                  <span>{new Date(story.time * 1000).toLocaleString()} • </span>
+                  <span>{story.score} points</span>
+                </div>
+                {story.text && (
+                  <div 
+                    className="mt-2 text-sm"
+                    dangerouslySetInnerHTML={{ __html: story.text }}
+                  />
+                )}
+                <div className="mt-2">
+                  <RelevanceScore 
+                    score={story.relevanceScore || 0} 
+                    title={story.title}
+                    userBio={bio}
+                  />
+                </div>
+                <MatchingKeywords 
+                  storyContent={`${story.title} ${story.text || ''}`}
+                  userKeywords={userKeywords}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
