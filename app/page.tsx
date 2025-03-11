@@ -126,7 +126,7 @@ export default function Home() {
         <LoadingSpinner message="Fetching and ranking stories based on your interests..." />
       )}
 
-      {!isLoading && filteredAndSortedStories.length > 0 && (
+      {!isLoading && stories.length > 0 && (
         <div>
           <h2 className="text-xl font-bold mb-4">Top Stories Ranked For You</h2>
           
@@ -147,48 +147,54 @@ export default function Home() {
             Showing {filteredAndSortedStories.length} stories with relevance score ≥ {minRelevanceScore}%
           </p>
           
-          <div className="space-y-4">
-            {filteredAndSortedStories.map((story) => (
-              <div key={story.id} className="p-4 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                <h3 className="font-medium">
-                  {story.url ? (
-                    <a 
-                      href={story.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      {story.title}
-                    </a>
-                  ) : (
-                    story.title
+          {filteredAndSortedStories.length > 0 ? (
+            <div className="space-y-4">
+              {filteredAndSortedStories.map((story) => (
+                <div key={story.id} className="p-4 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
+                  <h3 className="font-medium">
+                    {story.url ? (
+                      <a 
+                        href={story.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        {story.title}
+                      </a>
+                    ) : (
+                      story.title
+                    )}
+                  </h3>
+                  <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    <span>By {story.by} • </span>
+                    <span>{new Date(story.time * 1000).toLocaleString()} • </span>
+                    <span>{story.score} points</span>
+                  </div>
+                  {story.text && (
+                    <div 
+                      className="mt-2 text-sm"
+                      dangerouslySetInnerHTML={{ __html: story.text }}
+                    />
                   )}
-                </h3>
-                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  <span>By {story.by} • </span>
-                  <span>{new Date(story.time * 1000).toLocaleString()} • </span>
-                  <span>{story.score} points</span>
-                </div>
-                {story.text && (
-                  <div 
-                    className="mt-2 text-sm"
-                    dangerouslySetInnerHTML={{ __html: story.text }}
-                  />
-                )}
-                <div className="mt-2">
-                  <RelevanceScore 
-                    score={story.relevanceScore || 0} 
-                    title={story.title}
-                    userBio={bio}
+                  <div className="mt-2">
+                    <RelevanceScore 
+                      score={story.relevanceScore || 0} 
+                      title={story.title}
+                      userBio={bio}
+                    />
+                  </div>
+                  <MatchingKeywords 
+                    storyContent={`${story.title} ${story.text || ''}`}
+                    userKeywords={userKeywords}
                   />
                 </div>
-                <MatchingKeywords 
-                  storyContent={`${story.title} ${story.text || ''}`}
-                  userKeywords={userKeywords}
-                />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-center">
+              <p>No stories match the current relevance threshold. Try lowering the minimum relevance score.</p>
+            </div>
+          )}
         </div>
       )}
     </div>
